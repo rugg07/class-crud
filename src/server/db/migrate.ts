@@ -6,6 +6,7 @@ import { ViteNodeRunner } from 'vite-node/client';
 import { ViteNodeServer } from 'vite-node/server';
 import { Kysely, Migrator, PostgresDialect, type Migration, type MigrationProvider } from 'kysely';
 import { Pool } from 'pg';
+import { env } from '../env';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationFolder = path.join(__dirname, 'migrations');
@@ -56,9 +57,11 @@ async function migrate() {
   const db = new Kysely<unknown>({
     dialect: new PostgresDialect({
       pool: new Pool({
-        connectionString:
-          process.env.DATABASE_URL ??
-          'postgres://postgres:postgres@localhost:5432/concentrate-quiz',
+        host: env.DB_HOST,
+        port: env.DB_PORT,
+        user: env.DB_USER,
+        password: env.DB_PASSWORD,
+        database: env.DB_NAME,
       }),
     }),
   });
