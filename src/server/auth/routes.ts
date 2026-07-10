@@ -2,8 +2,10 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { env } from '../env';
 import { redis } from '../redis';
+import { db } from '../db/client';
 import { loginWithPassword, loginWithGoogle } from './auth.service';
 import { getGoogleAuthUrl } from './oauth';
+import { verifyToken } from './jwt';
 
 
 // Zod schema for login endpoint.
@@ -104,6 +106,37 @@ async function logoutHandler(
   reply.code(200).send({ ok: true });
 }
 
+// GET /auth/me - return current user from JWT cookie.
+async function getMeHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const session = request.cookies.session;
+  if (!session) {
+    reply.code(401).send({ error: 'Not authenticated' });
+    return;
+  }
+
+  const decoded = verifyToken(session);
+  if (!decoded) {
+    reply.code(401).send({ error: 'Not authenticated' });
+    return;
+  }
+
+  const user = await db
+    .selectFrom('users')
+    .where('id', '=', decoded.userId)
+    .selectAll()
+    .executeTakeFirst();
+
+  if (!user) {
+    reply.code(401).send({ error: 'User not found' });
+    return;
+  }
+
+  reply.code(200).send(user);
+}
+
 // Register auth routes with Fastify instance.
 export async function registerAuthRoutes(
   fastify: FastifyInstance
@@ -112,4 +145,5 @@ export async function registerAuthRoutes(
   fastify.get('/auth/google/authorize', googleAuthorizeHandler);
   fastify.get('/auth/google/callback', googleCallbackHandler);
   fastify.post('/auth/logout', logoutHandler);
+  fastify.get('/auth/me', getMeHandler);
 }

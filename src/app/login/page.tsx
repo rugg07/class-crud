@@ -6,28 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-
-type Role = 'admin' | 'teacher' | 'student';
+import { apiClient } from '@/lib/api/client';
 
 export default function LoginPage() {
-  const [role, setRole] = useState<Role>('student');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email) {
+    if (!email || !password) {
       toast({
         title: 'Error',
         description: 'Please fill in all fields',
@@ -38,19 +29,13 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/dev-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, name, email }),
-      });
-
-      if (!response.ok) throw new Error('Login failed');
-
-      router.push(`/${role}`);
-    } catch {
+      const response = await apiClient.login(email, password);
+      router.push(`/${response.user.role}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Login failed';
       toast({
         title: 'Login failed',
-        description: 'Please try again',
+        description: message === 'Unauthorized' ? 'Invalid credentials' : message,
         variant: 'destructive',
       });
     } finally {
@@ -64,35 +49,11 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle>School Portal</CardTitle>
           <CardDescription>
-            ⚠️ DEV LOGIN (Temporary) — Will be replaced with real OAuth
+            Sign in with your email and password
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as Role)}>
-                <SelectTrigger id="role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="teacher">Teacher</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -101,6 +62,17 @@ export default function LoginPage() {
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
