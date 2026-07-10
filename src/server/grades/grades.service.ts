@@ -67,6 +67,7 @@ export async function getGradeForSubmission(
     .selectFrom('grades')
     .where('submission_id', '=', submissionId)
     .orderBy('graded_at', 'desc')
+    .orderBy('id', 'desc')
     .selectAll()
     .executeTakeFirst();
   return grade ?? null;
@@ -80,6 +81,7 @@ export async function getAllGradesForSubmission(
     .selectFrom('grades')
     .where('submission_id', '=', submissionId)
     .orderBy('graded_at', 'desc')
+    .orderBy('id', 'desc')
     .selectAll()
     .execute();
 }
@@ -88,11 +90,22 @@ export async function getAllGradesForSubmission(
 export async function getAllGradesForAssignment(
   assignmentId: string
 ): Promise<Grade[]> {
-  return db
+  const results = await db
     .selectFrom('grades')
     .innerJoin('submissions', 'grades.submission_id', 'submissions.id')
     .where('submissions.assignment_id', '=', assignmentId)
     .selectAll()
     .orderBy('grades.graded_at', 'desc')
+    .orderBy('grades.id', 'desc')
     .execute();
+
+  return results.map(r => ({
+    id: r.id,
+    submission_id: r.submission_id,
+    graded_version_id: r.graded_version_id,
+    grade: r.grade,
+    feedback: r.feedback,
+    graded_by: r.graded_by,
+    graded_at: r.graded_at,
+  }));
 }

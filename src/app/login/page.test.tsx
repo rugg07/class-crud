@@ -1,7 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import LoginPage from './page';
-import * as apiModule from '@/lib/api/client';
+import { apiClient } from '@/lib/api/client';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/ui/use-toast';
 
 // Mock the API client
 vi.mock('@/lib/api/client', () => ({
@@ -17,9 +19,9 @@ vi.mock('next/navigation', () => ({
 
 // Mock toast hook
 vi.mock('@/components/ui/use-toast', () => ({
-  useToast: () => ({
+  useToast: vi.fn(() => ({
     toast: vi.fn(),
-  }),
+  })),
 }));
 
 describe('LoginPage', () => {
@@ -28,8 +30,7 @@ describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPush = vi.fn();
-    const { useRouter } = require('next/navigation');
-    useRouter.mockReturnValue({ push: mockPush });
+    vi.mocked(useRouter).mockReturnValue({ push: mockPush } as unknown as ReturnType<typeof useRouter>);
   });
 
   it('renders login form with email and password fields', () => {
@@ -46,7 +47,7 @@ describe('LoginPage', () => {
       user: { id: 'user1', role: 'student', email: 'test@test.com', name: 'Test User', status: 'active' },
       token: 'token123',
     });
-    (apiModule.apiClient.login as any) = loginMock;
+    vi.mocked(apiClient.login).mockImplementation(loginMock);
 
     render(<LoginPage />);
 
@@ -68,7 +69,7 @@ describe('LoginPage', () => {
       user: { id: 'user1', role: 'admin', email: 'admin@test.com', name: 'Admin User', status: 'active' },
       token: 'token123',
     });
-    (apiModule.apiClient.login as any) = loginMock;
+    vi.mocked(apiClient.login).mockImplementation(loginMock);
 
     render(<LoginPage />);
 
@@ -84,10 +85,9 @@ describe('LoginPage', () => {
   it('shows error toast on login failure with invalid credentials', async () => {
     const toastMock = vi.fn();
     const loginMock = vi.fn().mockRejectedValue(new Error('Unauthorized'));
-    (apiModule.apiClient.login as any) = loginMock;
+    vi.mocked(apiClient.login).mockImplementation(loginMock);
 
-    const { useToast } = require('@/components/ui/use-toast');
-    useToast.mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
 
     render(<LoginPage />);
 
@@ -108,8 +108,7 @@ describe('LoginPage', () => {
 
   it('shows error toast when email field is empty', async () => {
     const toastMock = vi.fn();
-    const { useToast } = require('@/components/ui/use-toast');
-    useToast.mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
 
     render(<LoginPage />);
 
@@ -127,8 +126,7 @@ describe('LoginPage', () => {
 
   it('shows error toast when password field is empty', async () => {
     const toastMock = vi.fn();
-    const { useToast } = require('@/components/ui/use-toast');
-    useToast.mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
 
     render(<LoginPage />);
 
@@ -151,7 +149,7 @@ describe('LoginPage', () => {
         token: 'token123',
       }), 100))
     );
-    (apiModule.apiClient.login as any) = loginMock;
+    vi.mocked(apiClient.login).mockImplementation(loginMock);
 
     render(<LoginPage />);
 

@@ -4,6 +4,7 @@ import type {
   Class,
   Assignment,
   Submission,
+  SubmissionVersion,
   Grade,
 } from '@/server/db/types';
 
@@ -280,8 +281,10 @@ class ApiClient {
     );
   }
 
-  async getSubmission(submissionId: string): Promise<Submission> {
-    return this.request<Submission>(
+  async getSubmission(
+    submissionId: string
+  ): Promise<Submission & { latestVersion: SubmissionVersion | undefined }> {
+    return this.request<Submission & { latestVersion: SubmissionVersion | undefined }>(
       `/submissions/${submissionId}`,
       { method: 'GET' }
     );
@@ -321,6 +324,63 @@ class ApiClient {
       `/assignments/${assignmentId}/grades`,
       { method: 'GET' }
     );
+  }
+
+  async getMySubmissions(): Promise<Submission[]> {
+    return this.request<Submission[]>('/submissions/mine', { method: 'GET' });
+  }
+
+  // Stats (all authenticated users)
+  async getStatsAverageGrades(): Promise<{ average: number | null }> {
+    return this.request<{ average: number | null }>(
+      '/api/v0/stats/average-grades',
+      { method: 'GET' }
+    );
+  }
+
+  async getStatsAverageGradesByClass(
+    classId: string
+  ): Promise<{ classId: string; average: number | null }> {
+    return this.request<{ classId: string; average: number | null }>(
+      `/api/v0/stats/average-grades/${classId}`,
+      { method: 'GET' }
+    );
+  }
+
+  async getStatsTeacherNames(): Promise<{
+    teachers: { id: string; name: string }[];
+  }> {
+    return this.request<{ teachers: { id: string; name: string }[] }>(
+      '/api/v0/stats/teacher-names',
+      { method: 'GET' }
+    );
+  }
+
+  async getStatsStudentNames(): Promise<{
+    students: { id: string; name: string }[];
+  }> {
+    return this.request<{ students: { id: string; name: string }[] }>(
+      '/api/v0/stats/student-names',
+      { method: 'GET' }
+    );
+  }
+
+  async getStatsClasses(): Promise<{
+    classes: { id: string; name: string; teacher_id: string; student_count: number }[];
+  }> {
+    return this.request<{
+      classes: { id: string; name: string; teacher_id: string; student_count: number }[];
+    }>('/api/v0/stats/classes', { method: 'GET' });
+  }
+
+  async getStatsClassStudents(classId: string): Promise<{
+    classId: string;
+    students: { id: string; name: string; email: string }[];
+  }> {
+    return this.request<{
+      classId: string;
+      students: { id: string; name: string; email: string }[];
+    }>(`/api/v0/stats/classes/${classId}`, { method: 'GET' });
   }
 }
 

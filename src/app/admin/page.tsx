@@ -7,6 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import type { User, TeacherGroup } from '@/server/db/types';
 import { apiClient } from '@/lib/api/client';
@@ -16,24 +24,32 @@ export default function AdminPage() {
   const [userStatuses, setUserStatuses] = useState<Record<string, 'active' | 'suspended'>>({});
   const [users, setUsers] = useState<User[]>([]);
   const [teacherGroups, setTeacherGroups] = useState<TeacherGroup[]>([]);
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<TeacherGroup | null>(null);
+  const [groupName, setGroupName] = useState('');
+  const [averageGrade, setAverageGrade] = useState<number | null>(null);
+  const [classStats, setClassStats] = useState<
+    { id: string; name: string; teacher_id: string; student_count: number }[]
+  >([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        setError(null);
-        const [usersResponse, groupsResponse] = await Promise.all([
+        const [usersResponse, groupsResponse, averageResponse, classesResponse] = await Promise.all([
           apiClient.getUsers(),
           apiClient.getTeacherGroups(),
+          apiClient.getStatsAverageGrades(),
+          apiClient.getStatsClasses(),
         ]);
         setUsers(usersResponse.users);
         setTeacherGroups(groupsResponse);
+        setAverageGrade(averageResponse.average);
+        setClassStats(classesResponse.classes);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Failed to load data';
-        setError(errorMsg);
         toast({
           title: 'Error',
           description: errorMsg,
@@ -61,6 +77,43 @@ export default function AdminPage() {
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const openCreateGroup = () => {
+    setEditingGroup(null);
+    setGroupName('');
+    setGroupDialogOpen(true);
+  };
+
+  const openEditGroup = (group: TeacherGroup) => {
+    setEditingGroup(group);
+    setGroupName(group.name);
+    setGroupDialogOpen(true);
+  };
+
+  const handleSaveGroup = async () => {
+    try {
+      if (editingGroup) {
+        await apiClient.updateTeacherGroup(editingGroup.id, groupName);
+      } else {
+        await apiClient.createTeacherGroup(groupName);
+      }
+
+      const groupsData = await apiClient.getTeacherGroups();
+      setTeacherGroups(groupsData);
+      setGroupDialogOpen(false);
+      toast({
+        title: 'Success',
+        description: editingGroup ? 'Group updated' : 'Group created',
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to save group';
+      toast({
+        title: 'Error',
+        description: errorMsg,
+        variant: 'destructive',
+      });
+    }
+  };
 
   const toggleUserStatus = async (userId: string) => {
     try {
@@ -95,6 +148,39 @@ export default function AdminPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Overview</CardTitle>
+          <CardDescription>System-wide statistics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-center text-muted-foreground py-8">Loading...</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Average Grade</p>
+                <p className="text-2xl font-bold">
+                  {averageGrade != null ? averageGrade.toFixed(1) : 'N/A'}
+                </p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Teachers</p>
+                <p className="text-2xl font-bold">{teachers.length}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Students</p>
+                <p className="text-2xl font-bold">{students.length}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Classes</p>
+                <p className="text-2xl font-bold">{classStats.length}</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Teacher Groups</CardTitle>
           <CardDescription>Organize teachers into groups</CardDescription>
         </CardHeader>
@@ -110,11 +196,15 @@ export default function AdminPage() {
                       <p className="font-medium">{group.name}</p>
                       <p className="text-sm text-muted-foreground">Created {new Date(group.created_at).toLocaleDateString()}</p>
                     </div>
-                    <Button variant="outline" size="sm">Edit</Button>
+                    <Button variant="outline" size="sm" onClick={() => openEditGroup(group)}>
+                      Edit
+                    </Button>
                   </div>
                 ))}
               </div>
-              <Button className="w-full mt-4">+ New Group</Button>
+              <Button className="w-full mt-4" onClick={openCreateGroup}>
+                + New Group
+              </Button>
             </>
           )}
         </CardContent>
@@ -220,6 +310,29 @@ export default function AdminPage() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingGroup ? 'Edit Teacher Group' : 'New Teacher Group'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="group-name">Group name</Label>
+            <Input
+              id="group-name"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Group name"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGroupDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveGroup}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

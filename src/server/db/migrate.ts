@@ -1,55 +1,12 @@
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promises as fs } from 'node:fs';
-import { createServer, type ViteDevServer } from 'vite';
-import { ViteNodeRunner } from 'vite-node/client';
-import { ViteNodeServer } from 'vite-node/server';
-import { Kysely, Migrator, PostgresDialect, type Migration, type MigrationProvider } from 'kysely';
+import { Kysely, Migrator, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
 import { env } from '../env';
+import { ViteNodeMigrationProvider } from './migration-provider';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationFolder = path.join(__dirname, 'migrations');
-
-class ViteNodeMigrationProvider implements MigrationProvider {
-  private server?: ViteDevServer;
-
-  async getMigrations(): Promise<Record<string, Migration>> {
-    this.server = await createServer({
-      optimizeDeps: { disabled: true },
-      logLevel: 'silent',
-    });
-    await this.server.pluginContainer.buildStart({});
-
-    const node = new ViteNodeServer(
-      this.server as unknown as ConstructorParameters<typeof ViteNodeServer>[0]
-    );
-    const runner = new ViteNodeRunner({
-      root: this.server.config.root,
-      base: this.server.config.base,
-      fetchModule: (id) => node.fetchModule(id),
-      resolveId: (id, importer) => node.resolveId(id, importer),
-    });
-
-    const fileNames = (await fs.readdir(migrationFolder))
-      .filter((fileName) => fileName.endsWith('.ts'))
-      .sort();
-
-    const migrations: Record<string, Migration> = {};
-
-    for (const fileName of fileNames) {
-      const migrationKey = fileName.replace(/\.ts$/, '');
-      const module = await runner.executeFile(path.join(migrationFolder, fileName));
-      migrations[migrationKey] = module;
-    }
-
-    return migrations;
-  }
-
-  async close(): Promise<void> {
-    await this.server?.close();
-  }
-}
 
 const direction = process.argv[2] === 'down' ? 'down' : 'up';
 
@@ -66,7 +23,7 @@ async function migrate() {
     }),
   });
 
-  const provider = new ViteNodeMigrationProvider();
+  const provider = new ViteNodeMigrationProvider(migrationFolder);
   const migrator = new Migrator({ db, provider });
 
   const { error, results } =

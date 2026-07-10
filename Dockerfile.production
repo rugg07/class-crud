@@ -1,0 +1,53 @@
+# Production Dockerfile
+# Multi-stage build: dependencies + build → minimal runtime
+
+# Stage 1: Builder
+FROM node:20-alpine AS builder
+
+WORKDIR /build
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies (production + dev for build)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Type check
+RUN npm run type-check
+
+# Build Next.js frontend + validate backend
+RUN npm run build
+
+# Stage 2: Runtime
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dumb-init (handles signals properly) and curl (for health checks)
+RUN apk add --no-cache dumb-init curl
+
+# Copy from builder: node_modules, .next, built files
+COPY --from=builder /build/node_modules ./node_modules
+COPY --from=builder /build/.next ./.next
+COPY --from=builder /build/src ./src
+COPY --from=builder /build/public ./public
+COPY --from=builder /build/package*.json ./
+
+# Set environment
+ENV NODE_ENV=production
+
+# Expose ports
+EXPOSE 3000 3001
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+  CMD curl -f http://localhost:3001/health || exit 1
+
+# Use dumb-init as entrypoint for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start command: run both Next.js (port 3000) and Fastify (port 3001)
+CMD ["npm", "run", "dev"]

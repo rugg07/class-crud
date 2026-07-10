@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import AdminPage from './page';
-import * as apiModule from '@/lib/api/client';
+import { apiClient } from '@/lib/api/client';
+import { useToast } from '@/components/ui/use-toast';
 import type { User, TeacherGroup } from '@/server/db/types';
 
 // Mock the API client
@@ -15,9 +16,9 @@ vi.mock('@/lib/api/client', () => ({
 
 // Mock toast hook
 vi.mock('@/components/ui/use-toast', () => ({
-  useToast: () => ({
+  useToast: vi.fn(() => ({
     toast: vi.fn(),
-  }),
+  })),
 }));
 
 describe('AdminPage', () => {
@@ -63,8 +64,8 @@ describe('AdminPage', () => {
   it('loads users and teacher groups on mount', async () => {
     const getUsersMock = vi.fn().mockResolvedValue({ users: mockUsers, total: 2 });
     const getGroupsMock = vi.fn().mockResolvedValue(mockTeacherGroups);
-    (apiModule.apiClient.getUsers as any) = getUsersMock;
-    (apiModule.apiClient.getTeacherGroups as any) = getGroupsMock;
+    vi.mocked(apiClient.getUsers).mockImplementation(getUsersMock);
+    vi.mocked(apiClient.getTeacherGroups).mockImplementation(getGroupsMock);
 
     render(<AdminPage />);
 
@@ -77,8 +78,8 @@ describe('AdminPage', () => {
   it('displays users in a table', async () => {
     const getUsersMock = vi.fn().mockResolvedValue({ users: mockUsers, total: 2 });
     const getGroupsMock = vi.fn().mockResolvedValue(mockTeacherGroups);
-    (apiModule.apiClient.getUsers as any) = getUsersMock;
-    (apiModule.apiClient.getTeacherGroups as any) = getGroupsMock;
+    vi.mocked(apiClient.getUsers).mockImplementation(getUsersMock);
+    vi.mocked(apiClient.getTeacherGroups).mockImplementation(getGroupsMock);
 
     render(<AdminPage />);
 
@@ -91,8 +92,8 @@ describe('AdminPage', () => {
   it('filters teachers by search query', async () => {
     const getUsersMock = vi.fn().mockResolvedValue({ users: mockUsers, total: 2 });
     const getGroupsMock = vi.fn().mockResolvedValue(mockTeacherGroups);
-    (apiModule.apiClient.getUsers as any) = getUsersMock;
-    (apiModule.apiClient.getTeacherGroups as any) = getGroupsMock;
+    vi.mocked(apiClient.getUsers).mockImplementation(getUsersMock);
+    vi.mocked(apiClient.getTeacherGroups).mockImplementation(getGroupsMock);
 
     render(<AdminPage />);
 
@@ -112,8 +113,8 @@ describe('AdminPage', () => {
   it('filters students by search query', async () => {
     const getUsersMock = vi.fn().mockResolvedValue({ users: mockUsers, total: 2 });
     const getGroupsMock = vi.fn().mockResolvedValue(mockTeacherGroups);
-    (apiModule.apiClient.getUsers as any) = getUsersMock;
-    (apiModule.apiClient.getTeacherGroups as any) = getGroupsMock;
+    vi.mocked(apiClient.getUsers).mockImplementation(getUsersMock);
+    vi.mocked(apiClient.getTeacherGroups).mockImplementation(getGroupsMock);
 
     render(<AdminPage />);
 
@@ -141,13 +142,12 @@ describe('AdminPage', () => {
       ...mockUsers[0],
       status: 'suspended',
     });
-    (apiModule.apiClient.getUsers as any) = getUsersMock;
-    (apiModule.apiClient.getTeacherGroups as any) = getGroupsMock;
-    (apiModule.apiClient.updateUser as any) = updateUserMock;
+    vi.mocked(apiClient.getUsers).mockImplementation(getUsersMock);
+    vi.mocked(apiClient.getTeacherGroups).mockImplementation(getGroupsMock);
+    vi.mocked(apiClient.updateUser).mockImplementation(updateUserMock);
 
-    const { useToast } = require('@/components/ui/use-toast');
     const toastMock = vi.fn();
-    useToast.mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
 
     render(<AdminPage />);
 
@@ -155,7 +155,7 @@ describe('AdminPage', () => {
       expect(screen.getByText('John Teacher')).toBeInTheDocument();
     });
 
-    const suspendButton = screen.getAllByRole('button', { name: /suspend/i })[0];
+    const suspendButton = screen.getAllByRole('button', { name: /suspend/i })[0]!;
     fireEvent.click(suspendButton);
 
     await waitFor(() => {
@@ -177,13 +177,12 @@ describe('AdminPage', () => {
       ...suspendedUser,
       status: 'active',
     });
-    (apiModule.apiClient.getUsers as any) = getUsersMock;
-    (apiModule.apiClient.getTeacherGroups as any) = getGroupsMock;
-    (apiModule.apiClient.updateUser as any) = updateUserMock;
+    vi.mocked(apiClient.getUsers).mockImplementation(getUsersMock);
+    vi.mocked(apiClient.getTeacherGroups).mockImplementation(getGroupsMock);
+    vi.mocked(apiClient.updateUser).mockImplementation(updateUserMock);
 
-    const { useToast } = require('@/components/ui/use-toast');
     const toastMock = vi.fn();
-    useToast.mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
 
     render(<AdminPage />);
 
@@ -208,8 +207,8 @@ describe('AdminPage', () => {
   it('displays teacher groups', async () => {
     const getUsersMock = vi.fn().mockResolvedValue({ users: mockUsers, total: 2 });
     const getGroupsMock = vi.fn().mockResolvedValue(mockTeacherGroups);
-    (apiModule.apiClient.getUsers as any) = getUsersMock;
-    (apiModule.apiClient.getTeacherGroups as any) = getGroupsMock;
+    vi.mocked(apiClient.getUsers).mockImplementation(getUsersMock);
+    vi.mocked(apiClient.getTeacherGroups).mockImplementation(getGroupsMock);
 
     render(<AdminPage />);
 
@@ -225,8 +224,8 @@ describe('AdminPage', () => {
     const getGroupsMock = vi.fn().mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve(mockTeacherGroups), 100))
     );
-    (apiModule.apiClient.getUsers as any) = getUsersMock;
-    (apiModule.apiClient.getTeacherGroups as any) = getGroupsMock;
+    vi.mocked(apiClient.getUsers).mockImplementation(getUsersMock);
+    vi.mocked(apiClient.getTeacherGroups).mockImplementation(getGroupsMock);
 
     render(<AdminPage />);
 

@@ -6,6 +6,7 @@ import {
   createSubmission,
   getSubmission,
   listSubmissionsByAssignment,
+  listSubmissionsByStudent,
 } from './submissions.service';
 
 const submitSchema = z.object({
@@ -101,6 +102,16 @@ async function listSubmissionsHandler(
   reply.send(submissions);
 }
 
+// GET /submissions/mine - student lists their own submissions.
+async function listMySubmissionsHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const studentId = request.user!.userId;
+  const submissions = await listSubmissionsByStudent(studentId);
+  reply.send(submissions);
+}
+
 // GET /submissions/:submissionId - student/teacher views submission.
 async function getSubmissionHandler(
   request: FastifyRequest,
@@ -170,6 +181,12 @@ export async function registerSubmissionsRoutes(
     '/assignments/:assignmentId/submissions',
     { onRequest: [requireAuth] },
     listSubmissionsHandler
+  );
+
+  fastify.get(
+    '/submissions/mine',
+    { onRequest: [requireAuth, requireRole('student')] },
+    listMySubmissionsHandler
   );
 
   fastify.get(

@@ -15,7 +15,7 @@ export async function getAverageGrades(redis: Redis): Promise<{
       .executeTakeFirst();
 
     return {
-      average: result?.average ?? null,
+      average: result?.average != null ? Number(result.average) : null,
     };
   }, CACHE_TTL);
 }
@@ -39,7 +39,7 @@ export async function getAverageGradesByClass(
 
       return {
         classId,
-        average: result?.average ?? null,
+        average: result?.average != null ? Number(result.average) : null,
       };
     },
     CACHE_TTL

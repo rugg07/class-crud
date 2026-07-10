@@ -1,11 +1,14 @@
 import { env } from './env';
 import { db } from './db/client';
 import { buildApp } from './app';
-import { Migrator, FileMigrationProvider } from 'kysely';
-import { promises as fs } from 'fs';
+import { Migrator } from 'kysely';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { ViteNodeMigrationProvider } from './db/migration-provider';
 
 export { db };
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Run migrations and start server.
 async function main() {
@@ -14,16 +17,11 @@ async function main() {
   console.log(`Redis: ${env.REDIS_URL}`);
 
   // Run pending migrations.
-  const migrator = new Migrator({
-    db,
-    provider: new FileMigrationProvider({
-      fs,
-      path,
-      migrationFolder: path.join(__dirname, 'db/migrations'),
-    }),
-  });
+  const provider = new ViteNodeMigrationProvider(path.join(__dirname, 'db/migrations'));
+  const migrator = new Migrator({ db, provider });
 
   const { error, results } = await migrator.migrateToLatest();
+  await provider.close();
   if (error) {
     console.error('Migration failed:', error);
     process.exit(1);

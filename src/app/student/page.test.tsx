@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import StudentPage from './page';
-import * as apiModule from '@/lib/api/client';
+import { apiClient } from '@/lib/api/client';
 import type { Class, Assignment } from '@/server/db/types';
 
 // Mock the API client
@@ -14,9 +14,9 @@ vi.mock('@/lib/api/client', () => ({
 
 // Mock toast hook
 vi.mock('@/components/ui/use-toast', () => ({
-  useToast: () => ({
+  useToast: vi.fn(() => ({
     toast: vi.fn(),
-  }),
+  })),
 }));
 
 describe('StudentPage', () => {
@@ -79,8 +79,8 @@ describe('StudentPage', () => {
   it('loads classes on mount', async () => {
     const getClassesMock = vi.fn().mockResolvedValue(mockClasses);
     const getAssignmentsMock = vi.fn().mockResolvedValue([]);
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 
@@ -94,8 +94,8 @@ describe('StudentPage', () => {
     const getAssignmentsMock = vi.fn().mockImplementation((classId) =>
       Promise.resolve(mockAssignments[classId] || [])
     );
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 
@@ -110,8 +110,8 @@ describe('StudentPage', () => {
     const getAssignmentsMock = vi.fn().mockImplementation((classId) =>
       Promise.resolve(mockAssignments[classId] || [])
     );
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 
@@ -127,8 +127,8 @@ describe('StudentPage', () => {
     const getAssignmentsMock = vi.fn().mockImplementation((classId) =>
       Promise.resolve(mockAssignments[classId] || [])
     );
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 
@@ -149,8 +149,8 @@ describe('StudentPage', () => {
     ];
     const getClassesMock = vi.fn().mockResolvedValue(classWithoutAssignments);
     const getAssignmentsMock = vi.fn().mockResolvedValue([]);
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 
@@ -164,8 +164,8 @@ describe('StudentPage', () => {
     const getAssignmentsMock = vi.fn().mockImplementation((classId) =>
       Promise.resolve(mockAssignments[classId] || [])
     );
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 
@@ -180,8 +180,8 @@ describe('StudentPage', () => {
     const getAssignmentsMock = vi.fn().mockImplementation((classId) =>
       Promise.resolve(mockAssignments[classId] || [])
     );
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 
@@ -198,8 +198,8 @@ describe('StudentPage', () => {
     const getAssignmentsMock = vi.fn().mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve([]), 100))
     );
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 
@@ -213,8 +213,8 @@ describe('StudentPage', () => {
   it('shows "No classes enrolled" when student has no classes', async () => {
     const getClassesMock = vi.fn().mockResolvedValue([]);
     const getAssignmentsMock = vi.fn().mockResolvedValue([]);
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 
@@ -228,8 +228,8 @@ describe('StudentPage', () => {
     const getAssignmentsMock = vi.fn().mockImplementation((classId) =>
       Promise.resolve(mockAssignments[classId] || [])
     );
-    (apiModule.apiClient.getClasses as any) = getClassesMock;
-    (apiModule.apiClient.getAssignments as any) = getAssignmentsMock;
+    vi.mocked(apiClient.getClasses).mockImplementation(getClassesMock);
+    vi.mocked(apiClient.getAssignments).mockImplementation(getAssignmentsMock);
 
     render(<StudentPage />);
 

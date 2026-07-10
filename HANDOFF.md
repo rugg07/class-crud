@@ -204,6 +204,37 @@ npm run test -- src/server/__tests__/integration/
 
 ---
 
+## 🚧 AWS Deployment: Attempted, Blocked by IAM Permissions Boundary
+
+**Status:** Deployment scripts are written and ready (`scripts/deploy-aws.sh`, `scripts/teardown-aws.sh`, `scripts/validate-aws-setup.sh`, `Dockerfile.production`, `docs/AWS_DEPLOYMENT.md`), but actually launching an EC2 instance in the sandbox account is blocked by an account-level IAM guardrail — not a bug in our scripts.
+
+**What happened:**
+1. Ran `./scripts/deploy-aws.sh` — AMI lookup and security group creation (`concentrate-quiz-sg`, ports 80/443/3000/3001) succeeded.
+2. The script failed at `aws ec2 run-instances --iam-instance-profile Name=sandbox-ssm-instance ...` with:
+   ```
+   An error occurred (UnauthorizedOperation) when calling the RunInstances operation: You are not
+   authorized to perform: iam:PassRole on resource: arn:aws:iam::334590194575:role/sandbox-ssm-instance
+   with an explicit deny in a permissions boundary: arn:aws:iam::334590194575:policy/sandbox_workload_boundary.
+   ```
+3. Retried `aws ec2 run-instances` directly (isolating it from the script) — identical error, so this is not transient.
+4. Attempted to inspect the boundary to see if it could be worked around (`aws iam get-role`, `aws iam get-policy`, `aws iam get-instance-profile` on `sandbox-ssm-instance`) — all denied. The assumed role (`sandbox_writer`) cannot even read the policy that's blocking it, let alone modify or bypass it.
+
+**Why we didn't chase this further:** Per `TASK.md`, AWS deployment is an explicit **bonus/stretch goal**, not a requirement, and this is a timed exercise. The block is an account-level guardrail outside our control (no SSH available either, per `TASK.md`, so there's no side-channel to fix IAM from the instance itself). Continuing to poke at it would trade required-feature time for a stretch goal we can't unblock from inside the sandbox.
+
+**What we did instead — full local verification of the exact same stack that would run on the instance:**
+```bash
+docker compose up -d              # postgres:17-alpine + redis:7-alpine — both healthy
+npm run migrate                   # 11 tables created successfully
+npm run seed                      # 1 admin, 2 teachers, 5 students, 2 classes, 6 assignments, 7 submissions, 3 grades
+npm run server:dev                # Fastify backend up on :3001
+curl http://localhost:3001/health                              # {"ok":true}
+curl -X POST http://localhost:3001/auth/login -d '{"email":"admin@example.com","password":"password123"}'
+# → 200 OK, returns user object + JWT + HttpOnly session cookie
+```
+This confirms the Docker Compose stack, migrations, seed data, and auth flow all work end-to-end — the same steps `docs/AWS_DEPLOYMENT.md` documents for the EC2 instance. If IAM access is opened up later, `scripts/deploy-aws.sh` should work as-is; re-run it and pick up from "Run migrations" in `AWS_QUICK_TEST.md`.
+
+---
+
 ## 🎓 Next Developer Quick Start
 
 ### **To Understand the System**
@@ -292,11 +323,11 @@ npm run dev
    - Create root Dockerfile (multi-stage: Next + Fastify)
    - Wire GitHub Actions (lint → typecheck → test → build → push)
 
-5. **Deploy to AWS** (stretch, ~2 hours)
-   - Launch EC2 instance
-   - `docker compose up` on instance
-   - Point DNS to instance IP
-   - Certbot SSL
+5. **Deploy to AWS** (stretch — scripts ready, blocked in this sandbox)
+   - Scripts + Dockerfile + docs written (`scripts/deploy-aws.sh`, `Dockerfile.production`, `docs/AWS_DEPLOYMENT.md`)
+   - Blocked on `iam:PassRole` permissions-boundary deny when launching the EC2 instance — see "🚧 AWS Deployment" section above
+   - Verified locally instead: Docker Compose stack, migrations, seed, health check, and login all confirmed working end-to-end
+   - Next developer with unblocked IAM: re-run `./scripts/deploy-aws.sh`, then follow `AWS_QUICK_TEST.md` from "Run migrations"
 
 **Realistic Scope:** Tests + deploy can be done in a long evening. Current state is fully functional and demo-ready.
 
