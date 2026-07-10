@@ -87,7 +87,7 @@ describe('LoginPage', () => {
     const loginMock = vi.fn().mockRejectedValue(new Error('Unauthorized'));
     vi.mocked(apiClient.login).mockImplementation(loginMock);
 
-    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock, dismiss: vi.fn(), toasts: [] });
 
     render(<LoginPage />);
 
@@ -108,7 +108,7 @@ describe('LoginPage', () => {
 
   it('shows error toast when email field is empty', async () => {
     const toastMock = vi.fn();
-    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock, dismiss: vi.fn(), toasts: [] });
 
     render(<LoginPage />);
 
@@ -126,7 +126,7 @@ describe('LoginPage', () => {
 
   it('shows error toast when password field is empty', async () => {
     const toastMock = vi.fn();
-    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock, dismiss: vi.fn(), toasts: [] });
 
     render(<LoginPage />);
 

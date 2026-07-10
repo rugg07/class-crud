@@ -147,7 +147,7 @@ describe('AdminPage', () => {
     vi.mocked(apiClient.updateUser).mockImplementation(updateUserMock);
 
     const toastMock = vi.fn();
-    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock, dismiss: vi.fn(), toasts: [] });
 
     render(<AdminPage />);
 
@@ -182,7 +182,7 @@ describe('AdminPage', () => {
     vi.mocked(apiClient.updateUser).mockImplementation(updateUserMock);
 
     const toastMock = vi.fn();
-    vi.mocked(useToast).mockReturnValue({ toast: toastMock });
+    vi.mocked(useToast).mockReturnValue({ toast: toastMock, dismiss: vi.fn(), toasts: [] });
 
     render(<AdminPage />);
 
