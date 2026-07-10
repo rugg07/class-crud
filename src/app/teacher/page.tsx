@@ -1,28 +1,167 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { getStudentsForTeacher, getAssignmentsForClass, getClassesForTeacher, getGradeForSubmission, getSubmissionsForAssignment } from '@/lib/mock-data';
-import { allSubmissionVersions } from '@/lib/mock-data/submissions';
+import { useToast } from '@/components/ui/use-toast';
+import type { Class, User, Assignment, Submission, Grade } from '@/server/db/types';
+import { apiClient } from '@/lib/api/client';
 import { ChevronDown } from 'lucide-react';
 
 export default function TeacherPage() {
-  const currentTeacherId = '00000000-0000-0000-0000-000000000002'; // Bob (for demo)
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [grades, setGrades] = useState<Record<string, number>>({});
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [students, setStudents] = useState<User[]>([]);
+  const [studentSubmissions, setStudentSubmissions] = useState<
+    Record<
+      string,
+      Array<{
+        submission: Submission;
+        grade: Grade | null;
+      }>
+    >
+  >({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const classes = getClassesForTeacher(currentTeacherId);
-  const students = getStudentsForTeacher(currentTeacherId);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const handleFeedbackSave = (studentId: string) => {
-    // TODO: Save to backend
-    console.log('Saving feedback for student:', studentId, feedback[studentId]);
+        // Get classes for current teacher
+        const classesData = await apiClient.getClasses();
+        setClasses(classesData);
+
+        // Get all students from classes
+        const allStudents = new Set<string>();
+        const submissionsMap: Record<
+          string,
+          Array<{
+            submission: Submission;
+            grade: Grade | null;
+          }>
+        > = {};
+
+        for (const classItem of classesData) {
+          const classStudents = await apiClient.getClassStudents(classItem.id);
+          classStudents.forEach((s) => allStudents.add(JSON.stringify(s)));
+
+          // Get submissions for all assignments in this class
+          const assignments = await apiClient.getAssignments(classItem.id);
+          for (const assignment of assignments) {
+            const submissions = await apiClient.getSubmissions(assignment.id);
+            for (const submission of submissions) {
+              if (!submissionsMap[submission.student_id]) {
+                submissionsMap[submission.student_id] = [];
+              }
+              try {
+                const grade = await apiClient.getGrade(submission.id);
+                submissionsMap[submission.student_id].push({
+                  submission,
+                  grade,
+                });
+              } catch {
+                submissionsMap[submission.student_id].push({
+                  submission,
+                  grade: null,
+                });
+              }
+            }
+          }
+        }
+
+        const uniqueStudents = Array.from(allStudents).map((s) => JSON.parse(s));
+        setStudents(uniqueStudents);
+        setStudentSubmissions(submissionsMap);
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to load data';
+        setError(errorMsg);
+        toast({
+          title: 'Error',
+          description: errorMsg,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [toast]);
+
+  const handleFeedbackSave = async (studentId: string, submissionId: string) => {
+    try {
+      const gradeValue = grades[`${studentId}-${submissionId}`];
+      const feedbackValue = feedback[`${studentId}-${submissionId}`];
+
+      if (gradeValue === undefined || gradeValue === null) {
+        toast({
+          title: 'Error',
+          description: 'Please enter a grade',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await apiClient.gradeSubmission(submissionId, gradeValue, feedbackValue);
+
+      toast({
+        title: 'Success',
+        description: 'Grade and feedback saved',
+      });
+
+      // Reload student submissions
+      const classesData = await apiClient.getClasses();
+      const submissionsMap: Record<
+        string,
+        Array<{
+          submission: Submission;
+          grade: Grade | null;
+        }>
+      > = {};
+
+      for (const classItem of classesData) {
+        const assignments = await apiClient.getAssignments(classItem.id);
+        for (const assignment of assignments) {
+          const submissions = await apiClient.getSubmissions(assignment.id);
+          for (const submission of submissions) {
+            if (!submissionsMap[submission.student_id]) {
+              submissionsMap[submission.student_id] = [];
+            }
+            try {
+              const grade = await apiClient.getGrade(submission.id);
+              submissionsMap[submission.student_id].push({
+                submission,
+                grade,
+              });
+            } catch {
+              submissionsMap[submission.student_id].push({
+                submission,
+                grade: null,
+              });
+            }
+          }
+        }
+      }
+
+      setStudentSubmissions(submissionsMap);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to save feedback';
+      toast({
+        title: 'Error',
+        description: errorMsg,
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -38,18 +177,12 @@ export default function TeacherPage() {
           <CardDescription>Expand each student to view their assignments and grades</CardDescription>
         </CardHeader>
         <CardContent>
-          {students.length > 0 ? (
+          {loading ? (
+            <p className="text-center text-muted-foreground py-8">Loading...</p>
+          ) : students.length > 0 ? (
             <div className="space-y-2">
               {students.map((student) => {
-                const studentClasses = classes;
-                const studentSubmissions = studentClasses
-                  .flatMap((c) => getAssignmentsForClass(c.id))
-                  .flatMap((a) => getSubmissionsForAssignment(a.id).filter((s) => s.student_id === student.id))
-                  .map((s) => {
-                    const version = allSubmissionVersions.find((v) => v.submission_id === s.id && v.version_number === 1);
-                    const grade = getGradeForSubmission(s.id);
-                    return { submission: s, version, grade };
-                  });
+                const submissions = studentSubmissions[student.id] || [];
 
                 return (
                   <Collapsible
@@ -70,20 +203,20 @@ export default function TeacherPage() {
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="p-4 bg-muted/30 border-t space-y-4">
-                      {studentSubmissions.length > 0 ? (
+                      {submissions.length > 0 ? (
                         <>
                           <div>
                             <h4 className="font-semibold mb-3">Submissions</h4>
                             <div className="space-y-2">
-                              {studentSubmissions.map(({ submission, version, grade }) => (
+                              {submissions.map(({ submission, grade }) => (
                                 <div key={submission.id} className="p-3 bg-background border rounded-md space-y-2">
                                   <div className="flex items-center justify-between">
                                     <p className="text-sm font-medium">Submission {submission.id.slice(0, 8)}</p>
-                                    {grade && <Badge>{grade.grade}/{grade.submission_id.charAt(0) === '4' ? '100' : '100'}</Badge>}
+                                    {grade && <Badge>{grade.grade}/100</Badge>}
                                   </div>
-                                  {version && (
-                                    <p className="text-sm text-muted-foreground">{version.content}</p>
-                                  )}
+                                  <p className="text-xs text-muted-foreground">
+                                    Submitted: {new Date(submission.created_at).toLocaleString()}
+                                  </p>
                                 </div>
                               ))}
                             </div>
@@ -92,34 +225,45 @@ export default function TeacherPage() {
                           <div className="border-t pt-4">
                             <h4 className="font-semibold mb-3">Feedback & Grade</h4>
                             <div className="space-y-3">
-                              <Textarea
-                                placeholder="Add feedback for this student..."
-                                value={feedback[student.id] || ''}
-                                onChange={(e) =>
-                                  setFeedback({ ...feedback, [student.id]: e.target.value })
-                                }
-                                className="text-sm"
-                              />
-                              <div className="flex gap-2">
-                                <Input
-                                  type="number"
-                                  placeholder="Grade"
-                                  min="0"
-                                  max="100"
-                                  value={grades[student.id] || ''}
-                                  onChange={(e) =>
-                                    setGrades({ ...grades, [student.id]: parseInt(e.target.value) || 0 })
-                                  }
-                                  className="max-w-24"
-                                />
-                                <span className="flex items-center text-muted-foreground">/ 100</span>
-                              </div>
-                              <Button
-                                size="sm"
-                                onClick={() => handleFeedbackSave(student.id)}
-                              >
-                                Save Feedback & Grade
-                              </Button>
+                              {submissions.map(({ submission }) => (
+                                <div key={submission.id} className="space-y-2">
+                                  <p className="text-xs text-muted-foreground">Submission {submission.id.slice(0, 8)}</p>
+                                  <Textarea
+                                    placeholder="Add feedback for this submission..."
+                                    value={feedback[`${student.id}-${submission.id}`] || ''}
+                                    onChange={(e) =>
+                                      setFeedback({
+                                        ...feedback,
+                                        [`${student.id}-${submission.id}`]: e.target.value,
+                                      })
+                                    }
+                                    className="text-sm"
+                                  />
+                                  <div className="flex gap-2">
+                                    <Input
+                                      type="number"
+                                      placeholder="Grade"
+                                      min="0"
+                                      max="100"
+                                      value={grades[`${student.id}-${submission.id}`] ?? ''}
+                                      onChange={(e) =>
+                                        setGrades({
+                                          ...grades,
+                                          [`${student.id}-${submission.id}`]: parseInt(e.target.value) || 0,
+                                        })
+                                      }
+                                      className="max-w-24"
+                                    />
+                                    <span className="flex items-center text-muted-foreground">/ 100</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleFeedbackSave(student.id, submission.id)}
+                                  >
+                                    Save Feedback & Grade
+                                  </Button>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         </>

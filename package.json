@@ -8,6 +8,7 @@
     "build": "next build",
     "migrate": "vite-node src/server/db/migrate.ts",
     "migrate:create": "vite-node src/server/db/migrate.ts create",
+    "seed": "vite-node src/server/db/seed.ts",
     "test": "vitest",
     "type-check": "tsc --noEmit",
     "server:dev": "vite-node src/server/index.ts"

@@ -1,23 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { allUsers } from '@/lib/mock-data/users';
-import { allTeacherGroups } from '@/lib/mock-data/teacher-groups';
 import { useToast } from '@/components/ui/use-toast';
+import type { User, TeacherGroup } from '@/server/db/types';
+import { apiClient } from '@/lib/api/client';
 
 export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [userStatuses, setUserStatuses] = useState<Record<string, 'active' | 'suspended'>>({});
+  const [users, setUsers] = useState<User[]>([]);
+  const [teacherGroups, setTeacherGroups] = useState<TeacherGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const teachers = allUsers.filter((u) => u.role === 'teacher');
-  const students = allUsers.filter((u) => u.role === 'student');
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [usersResponse, groupsResponse] = await Promise.all([
+          apiClient.getUsers(),
+          apiClient.getTeacherGroups(),
+        ]);
+        setUsers(usersResponse.users);
+        setTeacherGroups(groupsResponse);
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to load data';
+        setError(errorMsg);
+        toast({
+          title: 'Error',
+          description: errorMsg,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [toast]);
+
+  const teachers = users.filter((u) => u.role === 'teacher');
+  const students = users.filter((u) => u.role === 'student');
 
   const filteredTeachers = teachers.filter(
     (u) =>
@@ -31,14 +62,28 @@ export default function AdminPage() {
       u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const toggleUserStatus = (userId: string) => {
-    const currentStatus = userStatuses[userId];
-    const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
-    setUserStatuses({ ...userStatuses, [userId]: newStatus });
-    toast({
-      title: 'Status updated',
-      description: `User ${newStatus === 'active' ? 'activated' : 'suspended'}`,
-    });
+  const toggleUserStatus = async (userId: string) => {
+    try {
+      const user = users.find((u) => u.id === userId);
+      if (!user) return;
+
+      const currentStatus = userStatuses[userId] || user.status;
+      const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+
+      await apiClient.updateUser(userId, { status: newStatus });
+      setUserStatuses({ ...userStatuses, [userId]: newStatus });
+      toast({
+        title: 'Status updated',
+        description: `User ${newStatus === 'active' ? 'activated' : 'suspended'}`,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to update user';
+      toast({
+        title: 'Error',
+        description: errorMsg,
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -54,18 +99,24 @@ export default function AdminPage() {
           <CardDescription>Organize teachers into groups</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {allTeacherGroups.map((group) => (
-              <div key={group.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="font-medium">{group.name}</p>
-                  <p className="text-sm text-muted-foreground">Created {new Date(group.created_at).toLocaleDateString()}</p>
-                </div>
-                <Button variant="outline" size="sm">Edit</Button>
+          {loading ? (
+            <p className="text-center text-muted-foreground py-8">Loading...</p>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {teacherGroups.map((group) => (
+                  <div key={group.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div>
+                      <p className="font-medium">{group.name}</p>
+                      <p className="text-sm text-muted-foreground">Created {new Date(group.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <Button variant="outline" size="sm">Edit</Button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <Button className="w-full mt-4">+ New Group</Button>
+              <Button className="w-full mt-4">+ New Group</Button>
+            </>
+          )}
         </CardContent>
       </Card>
 
