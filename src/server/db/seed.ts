@@ -38,7 +38,7 @@ async function seed() {
       .execute();
 
     // 2 Teachers
-    const [teacher1, teacher2] = await db
+    const teacherResult = await db
       .insertInto('users')
       .values([
         {
@@ -56,6 +56,8 @@ async function seed() {
       ])
       .returning(['id', 'email', 'role'])
       .execute();
+    const teacher1 = teacherResult[0]!;
+    const teacher2 = teacherResult[1]!;
 
     // 5 Students
     const students = await db
@@ -100,13 +102,14 @@ async function seed() {
     // === CREATE TEACHER GROUPS ===
     console.log('Creating teacher group...');
 
-    const [teacherGroup] = await db
+    const teacherGroupResult = await db
       .insertInto('teacher_groups')
       .values({
         name: 'Math Department',
       })
       .returning(['id', 'name'])
       .execute();
+    const teacherGroup = teacherGroupResult[0]!;
 
     // Add both teachers to the group
     await db
@@ -128,7 +131,7 @@ async function seed() {
     // === CREATE CLASSES ===
     console.log('Creating classes...');
 
-    const [class1, class2] = await db
+    const classResult = await db
       .insertInto('classes')
       .values([
         {
@@ -142,6 +145,8 @@ async function seed() {
       ])
       .returning(['id', 'name', 'teacher_id'])
       .execute();
+    const class1 = classResult[0]!;
+    const class2 = classResult[1]!;
 
     console.log(`✅ Created 2 classes`);
 
@@ -153,12 +158,12 @@ async function seed() {
     await db
       .insertInto('enrollments')
       .values([
-        { class_id: class1.id, student_id: students[0].id },
-        { class_id: class1.id, student_id: students[1].id },
-        { class_id: class1.id, student_id: students[2].id },
-        { class_id: class2.id, student_id: students[2].id },
-        { class_id: class2.id, student_id: students[3].id },
-        { class_id: class2.id, student_id: students[4].id },
+        { class_id: class1.id, student_id: students[0]!.id },
+        { class_id: class1.id, student_id: students[1]!.id },
+        { class_id: class1.id, student_id: students[2]!.id },
+        { class_id: class2.id, student_id: students[2]!.id },
+        { class_id: class2.id, student_id: students[3]!.id },
+        { class_id: class2.id, student_id: students[4]!.id },
       ])
       .execute();
 
@@ -245,8 +250,8 @@ async function seed() {
     const sub1_1 = await db
       .insertInto('submissions')
       .values({
-        assignment_id: class1Assignments[0].id,
-        student_id: students[0].id,
+        assignment_id: class1Assignments[0]!.id,
+        student_id: students[0]!.id,
       })
       .returning('id')
       .executeTakeFirst();
@@ -254,8 +259,8 @@ async function seed() {
     const sub1_2 = await db
       .insertInto('submissions')
       .values({
-        assignment_id: class1Assignments[0].id,
-        student_id: students[1].id,
+        assignment_id: class1Assignments[0]!.id,
+        student_id: students[1]!.id,
       })
       .returning('id')
       .executeTakeFirst();
@@ -263,8 +268,8 @@ async function seed() {
     const sub1_3 = await db
       .insertInto('submissions')
       .values({
-        assignment_id: class1Assignments[0].id,
-        student_id: students[2].id,
+        assignment_id: class1Assignments[0]!.id,
+        student_id: students[2]!.id,
       })
       .returning('id')
       .executeTakeFirst();
@@ -273,8 +278,8 @@ async function seed() {
     const sub2_1 = await db
       .insertInto('submissions')
       .values({
-        assignment_id: class1Assignments[1].id,
-        student_id: students[0].id,
+        assignment_id: class1Assignments[1]!.id,
+        student_id: students[0]!.id,
       })
       .returning('id')
       .executeTakeFirst();
@@ -282,8 +287,8 @@ async function seed() {
     const sub2_2 = await db
       .insertInto('submissions')
       .values({
-        assignment_id: class1Assignments[1].id,
-        student_id: students[1].id,
+        assignment_id: class1Assignments[1]!.id,
+        student_id: students[1]!.id,
       })
       .returning('id')
       .executeTakeFirst();
@@ -292,8 +297,8 @@ async function seed() {
     const sub4_1 = await db
       .insertInto('submissions')
       .values({
-        assignment_id: class2Assignments[0].id,
-        student_id: students[2].id,
+        assignment_id: class2Assignments[0]!.id,
+        student_id: students[2]!.id,
       })
       .returning('id')
       .executeTakeFirst();
@@ -301,8 +306,8 @@ async function seed() {
     const sub4_2 = await db
       .insertInto('submissions')
       .values({
-        assignment_id: class2Assignments[0].id,
-        student_id: students[3].id,
+        assignment_id: class2Assignments[0]!.id,
+        student_id: students[3]!.id,
       })
       .returning('id')
       .executeTakeFirst();

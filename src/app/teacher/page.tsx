@@ -60,17 +60,18 @@ export default function TeacherPage() {
           for (const assignment of assignments) {
             const submissions = await apiClient.getSubmissions(assignment.id);
             for (const submission of submissions) {
-              if (!submissionsMap[submission.student_id]) {
-                submissionsMap[submission.student_id] = [];
+              const studentId = submission.student_id;
+              if (!submissionsMap[studentId]) {
+                submissionsMap[studentId] = [];
               }
               try {
                 const grade = await apiClient.getGrade(submission.id);
-                submissionsMap[submission.student_id].push({
+                submissionsMap[studentId]!.push({
                   submission,
                   grade,
                 });
               } catch {
-                submissionsMap[submission.student_id].push({
+                submissionsMap[studentId]!.push({
                   submission,
                   grade: null,
                 });
@@ -134,17 +135,18 @@ export default function TeacherPage() {
         for (const assignment of assignments) {
           const submissions = await apiClient.getSubmissions(assignment.id);
           for (const submission of submissions) {
-            if (!submissionsMap[submission.student_id]) {
-              submissionsMap[submission.student_id] = [];
+            const studentId = submission.student_id;
+            if (!submissionsMap[studentId]) {
+              submissionsMap[studentId] = [];
             }
             try {
               const grade = await apiClient.getGrade(submission.id);
-              submissionsMap[submission.student_id].push({
+              submissionsMap[studentId]!.push({
                 submission,
                 grade,
               });
             } catch {
-              submissionsMap[submission.student_id].push({
+              submissionsMap[studentId]!.push({
                 submission,
                 grade: null,
               });
