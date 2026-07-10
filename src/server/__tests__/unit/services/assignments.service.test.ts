@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { db } from '../db/client';
+import { db } from '../../../db/client';
 import {
   listAssignmentsByClass,
   getAssignmentById,
@@ -7,7 +7,7 @@ import {
   updateAssignment,
   publishAssignment,
   deleteAssignment,
-} from './assignments.service';
+} from '../../../assignments/assignments.service';
 
 describe('Assignments Service', () => {
   let classId: string;
@@ -168,8 +168,8 @@ describe('Assignments Service', () => {
       const after = new Date();
 
       expect(published?.published_at).not.toBeNull();
-      expect(published?.published_at! >= before).toBe(true);
-      expect(published?.published_at! <= after).toBe(true);
+      expect(published && published.published_at && published.published_at >= before).toBe(true);
+      expect(published && published.published_at && published.published_at <= after).toBe(true);
     });
 
     it('should return null if not found', async () => {

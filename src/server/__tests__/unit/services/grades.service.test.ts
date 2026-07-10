@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { db } from '../db/client';
+import { db } from '../../../db/client';
 import {
   recordGrade,
   getGradeForSubmission,
   getAllGradesForSubmission,
-} from './grades.service';
+} from '../../../grades/grades.service';
 import {
   createSubmission,
-} from '../submissions/submissions.service';
+} from '../../../submissions/submissions.service';
 
 describe('grades.service', () => {
   let assignmentId: string;
@@ -67,7 +67,11 @@ describe('grades.service', () => {
       .values({
         class_id: classRow.id,
         title: 'Test Assignment',
-      } as any)
+        description: null,
+        due_at: null,
+        published_at: null,
+        max_points: 100,
+      })
       .returningAll()
       .executeTakeFirstOrThrow();
 

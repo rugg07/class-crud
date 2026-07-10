@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type Redis from 'ioredis';
-import { db } from '../db/client';
-import { redis } from '../redis';
+import { db } from '../../../db/client';
+import { redis } from '../../../redis';
 import {
   getAverageGrades,
   getAverageGradesByClass,
@@ -11,13 +11,13 @@ import {
   getClassStudents,
   invalidateCache,
   invalidateCachePatterns,
-} from './stats.service';
+} from '../../../stats/stats.service';
 
 let teacherId: string;
 let studentId: string;
 let classId: string;
-let assignmentId: string;
-let submissionId: string;
+let _assignmentId: string;
+let _submissionId: string;
 
 beforeAll(async () => {
   // Migrations should already be run; just ensure db is available.
@@ -85,8 +85,9 @@ beforeEach(async () => {
       title: 'Quiz 1',
       description: null,
       due_at: null,
-      published_at: new Date(),
-    } as any)
+      published_at: new Date().toISOString(),
+      max_points: 100,
+    })
     .returningAll()
     .executeTakeFirst();
 
@@ -105,8 +106,12 @@ beforeEach(async () => {
       submission_id: submission!.id,
       version_number: 1,
       content: 'student answer',
-      submitted_at: new Date(),
-    } as any)
+      submitted_at: new Date().toISOString(),
+      file_url: null,
+      file_name: null,
+      mime_type: null,
+      file_size: null,
+    })
     .returningAll()
     .executeTakeFirst();
 
@@ -119,14 +124,14 @@ beforeEach(async () => {
       feedback: 'Good work',
       graded_by: teacher!.id,
       graded_at: new Date(),
-    } as any)
+    })
     .execute();
 
   teacherId = teacher!.id;
   studentId = student!.id;
   classId = newClass!.id;
-  assignmentId = assignment!.id;
-  submissionId = submission!.id;
+  _assignmentId = assignment!.id;
+  _submissionId = submission!.id;
 });
 
 afterAll(async () => {

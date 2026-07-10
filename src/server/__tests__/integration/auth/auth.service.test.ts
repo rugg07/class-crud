@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { db } from '../db/client';
+import { db } from '../../../db/client';
 import {
   loginWithPassword,
   loginWithGoogle,
   createUser,
-} from './auth.service';
-import { hashPassword } from './password';
-import type { User } from '../db/types';
+} from '../../../auth/auth.service';
+import type { User } from '../../../db/types';
 
 let testUser: User;
 

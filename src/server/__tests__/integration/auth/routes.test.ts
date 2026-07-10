@@ -4,15 +4,15 @@ import FastifyCookie from '@fastify/cookie';
 import type { FastifyInstance } from 'fastify';
 import Redis from 'ioredis';
 import request from 'supertest';
-import { db } from '../db/client';
-import { registerAuthRoutes } from './routes';
-import { createUser } from './auth.service';
-import { env } from '../env';
-import type { User } from '../db/types';
+import { db } from '../../../db/client';
+import { registerAuthRoutes } from '../../../auth/routes';
+import { createUser } from '../../../auth/auth.service';
+import { env } from '../../../env';
+import type { User } from '../../../db/types';
 
 let fastify: FastifyInstance;
 let redis: Redis;
-let testUser: User;
+let _testUser: User;
 
 beforeAll(async () => {
   redis = new Redis(env.REDIS_URL);
@@ -29,7 +29,7 @@ beforeEach(async () => {
   await redis.flushdb();
 
   // Create test user.
-  testUser = await createUser(
+  _testUser = await createUser(
     'test@example.com',
     'password123',
     'Test User',

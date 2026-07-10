@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { db } from '../db/client';
+import { db } from '../../db/client';
 import {
   listUsers,
   getUserById,
@@ -7,7 +7,7 @@ import {
   updateUser,
   suspendUser,
   unsuspendUser,
-} from './users.service';
+} from '../../users/users.service';
 
 describe('Users Service', () => {
   beforeEach(async () => {

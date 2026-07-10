@@ -3,18 +3,18 @@ import Fastify from 'fastify';
 import FastifyCookie from '@fastify/cookie';
 import type { FastifyInstance } from 'fastify';
 import request from 'supertest';
-import { db } from '../db/client';
-import { redis } from '../redis';
-import { registerAuthPlugin } from '../auth/plugin';
-import { signToken } from '../auth/jwt';
-import { registerStatsRoutes } from './routes';
-import { invalidateCache } from './stats.service';
+import { db } from '../../../db/client';
+import { redis } from '../../../redis';
+import { registerAuthPlugin } from '../../../auth/plugin';
+import { signToken } from '../../../auth/jwt';
+import { registerStatsRoutes } from '../../../stats/routes';
+import { invalidateCache } from '../../../stats/stats.service';
 
 let fastify: FastifyInstance;
 let token: string;
 let userId: string;
-let teacherId: string;
-let studentId: string;
+let _teacherId: string;
+let _studentId: string;
 let classId: string;
 
 beforeAll(async () => {
@@ -104,7 +104,8 @@ beforeEach(async () => {
       description: null,
       due_at: null,
       published_at: new Date(),
-    } as any)
+      max_points: 100,
+    })
     .returningAll()
     .executeTakeFirst();
 
@@ -124,7 +125,11 @@ beforeEach(async () => {
       version_number: 1,
       content: 'student answer',
       submitted_at: new Date(),
-    } as any)
+      file_url: null,
+      file_name: null,
+      mime_type: null,
+      file_size: null,
+    })
     .returningAll()
     .executeTakeFirst();
 
@@ -137,11 +142,11 @@ beforeEach(async () => {
       feedback: 'Excellent',
       graded_by: teacher!.id,
       graded_at: new Date(),
-    } as any)
+    })
     .execute();
 
-  teacherId = teacher!.id;
-  studentId = student!.id;
+  _teacherId = teacher!.id;
+  _studentId = student!.id;
   classId = newClass!.id;
 });
 

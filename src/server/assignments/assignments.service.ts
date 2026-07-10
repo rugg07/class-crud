@@ -1,5 +1,6 @@
 import { db } from '../db/client';
-import type { Assignment } from '../db/types';
+import type { Assignment, AssignmentsTable } from '../db/types';
+import type { Updateable } from 'kysely';
 
 // Fetch all assignments in a class.
 export async function listAssignmentsByClass(
@@ -56,7 +57,7 @@ export async function updateAssignment(
   id: string,
   updates: { title?: string; description?: string; due_at?: Date | null }
 ): Promise<Assignment | null> {
-  const normalizedUpdates: Record<string, any> = {};
+  const normalizedUpdates: Updateable<AssignmentsTable> = {};
   if (updates.title !== undefined) normalizedUpdates.title = updates.title;
   if (updates.description !== undefined) normalizedUpdates.description = updates.description;
   if (updates.due_at !== undefined) normalizedUpdates.due_at = updates.due_at?.toISOString() || null;

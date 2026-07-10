@@ -10,6 +10,7 @@ import {
   deleteAssignment,
 } from './assignments.service';
 import { getClassById } from '../classes/classes.service';
+import { db } from '../db/client';
 
 const createAssignmentSchema = z.object({
   title: z.string().min(1),
@@ -46,7 +47,7 @@ async function listAssignmentsHandler(
 
   if (!isTeacher && !isAdmin) {
     const isStudent = (
-      await require('../db/client').db
+      await db
         .selectFrom('enrollments')
         .where('class_id', '=', classId)
         .where('student_id', '=', user.userId)

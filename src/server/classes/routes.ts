@@ -12,6 +12,7 @@ import {
   removeStudent,
   getClassStudents,
 } from './classes.service';
+import { db } from '../db/client';
 
 const createClassSchema = z.object({
   name: z.string().min(1),
@@ -36,21 +37,20 @@ async function listClassesHandler(
     return;
   }
 
-  let classes;
+  let classes: { id: string; teacher_id: string; name: string; created_at: Date }[];
   if (user.role === 'admin') {
     classes = await listAllClasses();
   } else if (user.role === 'teacher') {
     classes = await listClassesByTeacher(user.userId);
   } else {
     // Student: list enrolled classes
-    const enrollments = await require('../db/client').db
-      .selectFrom('enrollments')
-      .innerJoin('classes', 'classes.id', 'enrollments.class_id')
+    classes = await db
+      .selectFrom('classes')
+      .innerJoin('enrollments', 'enrollments.class_id', 'classes.id')
       .where('enrollments.student_id', '=', user.userId)
-      .select('classes.*')
+      .select(['classes.id', 'classes.teacher_id', 'classes.name', 'classes.created_at'])
       .orderBy('classes.created_at', 'desc')
       .execute();
-    classes = enrollments;
   }
 
   reply.code(200).send(classes);
@@ -181,7 +181,7 @@ async function getStudentsHandler(
 
   if (!isTeacher && !isAdmin) {
     const isStudent = (
-      await require('../db/client').db
+      await db
         .selectFrom('enrollments')
         .where('class_id', '=', id)
         .where('student_id', '=', user.userId)
@@ -231,14 +231,15 @@ async function enrollStudentHandler(
   try {
     await enrollStudent(id, body.data.student_id);
     reply.code(201).send({ ok: true });
-  } catch (err: any) {
+  } catch (err) {
+    const error = err as { message: string };
     if (
-      err.message === 'Class not found' ||
-      err.message === 'Student not found'
+      error.message === 'Class not found' ||
+      error.message === 'Student not found'
     ) {
-      reply.code(404).send({ error: err.message });
-    } else if (err.message === 'Student already enrolled') {
-      reply.code(400).send({ error: err.message });
+      reply.code(404).send({ error: error.message });
+    } else if (error.message === 'Student already enrolled') {
+      reply.code(400).send({ error: error.message });
     } else {
       reply.code(500).send({ error: 'Internal server error' });
     }

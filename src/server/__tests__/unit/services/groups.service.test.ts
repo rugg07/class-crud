@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { db } from '../db/client';
+import { db } from '../../../db/client';
 import {
   listGroups,
   getGroupById,
@@ -8,7 +8,7 @@ import {
   deleteGroup,
   addTeacherToGroup,
   removeTeacherFromGroup,
-} from './groups.service';
+} from '../../../teacher-groups/groups.service';
 
 describe('Teacher Groups Service', () => {
   let teacher1Id: string;

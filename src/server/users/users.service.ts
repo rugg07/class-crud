@@ -1,5 +1,6 @@
 import { db } from '../db/client';
-import type { User } from '../db/types';
+import type { User, UsersTable } from '../db/types';
+import type { Updateable } from 'kysely';
 import { hashPassword } from '../auth/password';
 
 // Fetch all users with pagination (including suspended).
@@ -61,10 +62,10 @@ export async function updateUser(
   id: string,
   updates: { name?: string; role?: string; status?: string }
 ): Promise<User | null> {
-  const normalizedUpdates: Record<string, any> = {};
+  const normalizedUpdates: Updateable<UsersTable> = {};
   if (updates.name !== undefined) normalizedUpdates.name = updates.name;
-  if (updates.role !== undefined) normalizedUpdates.role = updates.role;
-  if (updates.status !== undefined) normalizedUpdates.status = updates.status;
+  if (updates.role !== undefined) normalizedUpdates.role = updates.role as any;
+  if (updates.status !== undefined) normalizedUpdates.status = updates.status as any;
 
   const user = await db
     .updateTable('users')

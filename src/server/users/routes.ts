@@ -27,11 +27,12 @@ async function listUsersHandler(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
+  const query = request.query as { limit?: number | string; offset?: number | string };
   const limit = Math.min(
-    Math.max((request.query as any)?.limit || 20, 1),
+    Math.max(parseInt(String(query?.limit || 20), 10), 1),
     100
   );
-  const offset = Math.max((request.query as any)?.offset || 0, 0);
+  const offset = Math.max(parseInt(String(query?.offset || 0), 10), 0);
 
   const result = await listUsers(limit, offset);
   reply.code(200).send(result);

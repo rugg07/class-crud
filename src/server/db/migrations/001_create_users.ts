@@ -1,6 +1,7 @@
 import { Kysely, sql } from 'kysely';
+import type { Database } from '../types';
 
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema.createType('user_role').asEnum(['admin', 'teacher', 'student']).execute();
 
   await db.schema.createType('user_status').asEnum(['active', 'suspended']).execute();
@@ -29,7 +30,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(db: Kysely<Database>): Promise<void> {
   await db.schema.dropTable('users').execute();
 
   await db.schema.dropType('user_status').execute();

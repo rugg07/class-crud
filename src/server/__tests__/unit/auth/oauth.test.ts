@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getGoogleAuthUrl, exchangeCodeForToken, getGoogleProfile } from './oauth';
+import type { Mock } from 'vitest';
+import { getGoogleAuthUrl, exchangeCodeForToken, getGoogleProfile } from '../../../auth/oauth';
 
 describe('oauth', () => {
   beforeEach(() => {
@@ -32,7 +33,7 @@ describe('oauth', () => {
           ok: true,
           json: () => Promise.resolve(mockTokenResponse),
         })
-      ) as any
+      ) as unknown as Mock
     );
 
     const result = await exchangeCodeForToken('test-code');
@@ -46,7 +47,7 @@ describe('oauth', () => {
         Promise.resolve({
           ok: false,
         })
-      ) as any
+      ) as unknown as Mock
     );
 
     const result = await exchangeCodeForToken('invalid-code');

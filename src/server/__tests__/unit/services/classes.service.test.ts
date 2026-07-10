@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { db } from '../db/client';
+import { db } from '../../../db/client';
 import {
   listClassesByTeacher,
   listAllClasses,
@@ -10,7 +10,7 @@ import {
   enrollStudent,
   removeStudent,
   getClassStudents,
-} from './classes.service';
+} from '../../../classes/classes.service';
 
 describe('Classes Service', () => {
   let teacherId: string;

@@ -4,7 +4,6 @@ import { env } from '../env';
 import { redis } from '../redis';
 import { loginWithPassword, loginWithGoogle } from './auth.service';
 import { getGoogleAuthUrl } from './oauth';
-import { requireAuth, requireRole } from './plugin';
 
 
 // Zod schema for login endpoint.

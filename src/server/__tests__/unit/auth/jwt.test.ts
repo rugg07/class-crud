@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { signToken, verifyToken } from './jwt';
+import { signToken, verifyToken } from '../../../auth/jwt';
 import * as jwt from 'jsonwebtoken';
 
 describe('jwt', () => {
