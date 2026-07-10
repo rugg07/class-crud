@@ -12,6 +12,12 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().optional(),
+  // Controls the `Secure` flag on session cookies. Defaults to NODE_ENV === 'production',
+  // but can be forced to 'false' for deployments served over plain HTTP without TLS.
+  SECURE_COOKIES: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === undefined ? undefined : v === 'true'),
 });
 
 const envVars = {
@@ -26,6 +32,7 @@ const envVars = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+  SECURE_COOKIES: process.env.SECURE_COOKIES,
 };
 
 const result = envSchema.safeParse(envVars);
@@ -41,4 +48,9 @@ if (!result.success) {
   }
 }
 
-export const env = result.data ?? envSchema.parse(envVars);
+const parsedEnv = result.data ?? envSchema.parse(envVars);
+
+export const env = {
+  ...parsedEnv,
+  SECURE_COOKIES: parsedEnv.SECURE_COOKIES ?? parsedEnv.NODE_ENV === 'production',
+};

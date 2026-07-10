@@ -39,7 +39,7 @@ async function loginHandler(
 
   reply.setCookie('session', result.token, {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
+    secure: env.SECURE_COOKIES,
     maxAge: 24 * 60 * 60,
     path: '/',
   });
@@ -89,7 +89,7 @@ async function googleCallbackHandler(
 
   reply.setCookie('session', result.token, {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
+    secure: env.SECURE_COOKIES,
     maxAge: 24 * 60 * 60,
     path: '/',
   });
