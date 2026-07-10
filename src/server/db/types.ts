@@ -48,6 +48,7 @@ export interface AssignmentsTable {
   due_at: ColumnType<Date, string | undefined, string | undefined> | null;
   published_at: ColumnType<Date, string | undefined, string | undefined> | null;
   created_at: ColumnType<Date, string | undefined, never>;
+  max_points: number;
 }
 
 export interface SubmissionsTable {
@@ -63,6 +64,10 @@ export interface SubmissionVersionsTable {
   version_number: number;
   content: string;
   submitted_at: ColumnType<Date, string | undefined, never>;
+  file_url: string | null;
+  file_name: string | null;
+  mime_type: string | null;
+  file_size: number | null;
 }
 
 export interface GradesTable {
